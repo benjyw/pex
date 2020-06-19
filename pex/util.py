@@ -205,3 +205,39 @@ def iter_pth_paths(filename):
         if extras_dir_case_insensitive not in known_paths and os.path.exists(extras_dir):
           yield extras_dir
           known_paths.add(extras_dir_case_insensitive)
+
+
+def process_inherit_path_value(value_str, inherit_path, source_desc):
+  """Parse an inherit_path value and add it to the dict.
+
+  :param value_str: The value to parse.
+  :param inherit_path: The dict to update with the parsed value.  A dict from dist name
+    (or 'PYTHONPATH') to one of 'prefer' or 'fallback', or a dict containing the single key
+    '*' mapped to one of 'prefer', 'fallback' or 'false'.
+  :param source_desc: Description of the provenance of the value, for use in error messages.
+  """
+  try:
+    position, dist = value_str.split(':')
+  except ValueError:
+    position, dist = value_str, '*'
+
+  if not (position in ['prefer', 'fallback'] or (position == 'false' and dist == '*')):
+    raise ValueError("{} value must be one of {{false|prefer|fallback}}, or a string of the form "
+                     "{{prefer|fallback}}:{{dist|PYTHONPATH}}. Got: {}".format(
+      source_desc, value_str))
+  if dist in inherit_path and inherit_path[dist] != position:
+    raise ValueError("{} was specifed multiple times for {}".format(source_desc, dist))
+
+  # Validate that we don't try and do something illogical.
+  if '*' in inherit_path and len(inherit_path) > 1:
+    raise ValueError("{} was specified with the value {}, so it cannot be "
+                           "specified multiple times.".format(source_desc, inherit_path['*']))
+
+  inherit_path[dist] = position
+
+
+def get_inherit_path_from_env(env_value):
+  inherit_path = {}
+  for value_str in env_value.split(','):
+    process_inherit_path_value(value_str, inherit_path, "PEX_INHERIT_PATH")
+  return inherit_path

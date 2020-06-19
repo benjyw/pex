@@ -191,12 +191,13 @@ class Variables(object):
 
   @property
   def PEX_INHERIT_PATH(self):
-    """String (false|prefer|fallback)
+    """String (false|prefer|fallback or prefer|fallback:dist|PYTHONPATH, ...).
 
     Allow inheriting packages from site-packages, user site-packages and the PYTHONPATH. By default,
     PEX scrubs any non stdlib packages from sys.path prior to invoking the application. Using
     'prefer' causes PEX to shift any non-stdlib packages before the pex environment on sys.path and
-    using 'fallback' shifts them after instead.
+    using 'fallback' shifts them after instead. Using prefer|fallback:dist|PYTHONPATH applies the
+    prefer/fallback logic to the specific dist or to PYTHONPATH.
 
     Using this option is generally not advised, but can help in situations when certain dependencies
     do not conform to standard packaging practices and thus cannot be bundled into PEX files.

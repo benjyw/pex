@@ -195,7 +195,7 @@ class PEXEnvironment(Environment):
       self._install_pypy_zipimporter_workaround(self._pex)
 
     super(PEXEnvironment, self).__init__(
-      search_path=[] if pex_info.inherit_path == 'false' else sys.path,
+      search_path=[] if pex_info.inherit_path.get('*') == 'false' else sys.path,
       platform=self._interpreter.identity.platform_tag,
       **kw
     )
@@ -414,12 +414,12 @@ class PEXEnvironment(Environment):
       with TRACER.timed('Activating %s' % dist, V=2):
         working_set.add(dist)
 
-        if self._inherit_path == "fallback":
+        if self._inherit_path.get(dist.project_name, self._inherit_path.get('*')) == "fallback":
           # Prepend location to sys.path.
           #
           # This ensures that bundled versions of libraries will be used before system-installed
           # versions, in case something is installed in both, helping to favor hermeticity in
-          # the case of non-hermetic PEX files (i.e. those with inherit_path=True).
+          # the case of non-hermetic PEX files (i.e. those with inherit_path=fallback).
           #
           # If the path is not already in sys.path, site.addsitedir will append (not prepend)
           # the path to sys.path. But if the path is already in sys.path, site.addsitedir will

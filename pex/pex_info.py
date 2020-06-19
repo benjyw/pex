@@ -11,6 +11,7 @@ from pex.common import can_write_dir, open_zip, safe_mkdtemp
 from pex.compatibility import PY2
 from pex.compatibility import string as compatibility_string
 from pex.orderedset import OrderedSet
+from pex.util import get_inherit_path_from_env
 from pex.variables import ENV
 from pex.version import __version__ as pex_version
 
@@ -34,7 +35,9 @@ class PexInfo(object):
                                       # at most one of script/entry_point can be specified
   zip_safe: bool, default True        # is this pex zip safe?
   unzip: bool, default False          # should this pex be unzipped and re-executed from there?
-  inherit_path: false/fallback/prefer # should this pex inherit site-packages + user site-packages
+  inherit_path:
+     {dist/PYTHONPATH: fallback/prefer}
+     {*: false/fallback/prefer}       # should this pex inherit site-packages + user site-packages
                                       # + PYTHONPATH?
   ignore_errors: True, default False  # should we ignore inability to resolve dependencies?
   always_write_cache: False           # should we always write the internal cache to disk first?
@@ -100,7 +103,7 @@ class PexInfo(object):
       'script': supplied_env.PEX_SCRIPT,
       'zip_safe': zip_safe,
       'unzip': unzip,
-      'inherit_path': supplied_env.PEX_INHERIT_PATH,
+      'inherit_path': get_inherit_path_from_env(supplied_env.PEX_INHERIT_PATH),
       'ignore_errors': supplied_env.PEX_IGNORE_ERRORS,
       'always_write_cache': supplied_env.PEX_ALWAYS_CACHE,
     }
@@ -223,14 +226,14 @@ class PexInfo(object):
     By default inherit_path is false.  This may be overridden at runtime by the $PEX_INHERIT_PATH
     environment variable.
     """
-    return self._pex_info.get('inherit_path', 'false')
+    return self._pex_info.get('inherit_path', {'*': 'false'})
 
   @inherit_path.setter
   def inherit_path(self, value):
     if value is False:
-      value = 'false'
+      value = {'*': 'false'}
     elif value is True:
-      value = 'prefer'
+      value = {'*': 'prefer'}
     self._pex_info['inherit_path'] = value
 
   @property

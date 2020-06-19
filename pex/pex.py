@@ -20,7 +20,7 @@ from pex.orderedset import OrderedSet
 from pex.pex_info import PexInfo
 from pex.third_party.pkg_resources import EntryPoint, WorkingSet, find_distributions
 from pex.tracer import TRACER
-from pex.util import iter_pth_paths, named_temporary_file
+from pex.util import iter_pth_paths, get_inherit_path_from_env, named_temporary_file
 from pex.variables import ENV
 
 
@@ -237,7 +237,9 @@ class PEX(object):  # noqa: T000
 
     user_site_distributions.update(all_distribution_paths(USER_SITE))
 
-    if inherit_path == 'false':
+    inherit_path_global = inherit_path.get('*')
+
+    if inherit_path.get('*') == 'false':
       scrub_paths = site_distributions | user_site_distributions
       for path in user_site_distributions:
         TRACER.log('Scrubbing from user site: %s' % path)
@@ -256,10 +258,10 @@ class PEX(object):  # noqa: T000
         TRACER.log('Extracted user PYTHONPATH of %s from unstashed PYTHONPATH of %s'
                    % (os.pathsep.join(user_pythonpath), pythonpath), V=2)
 
-      if inherit_path == 'false':
+      if inherit_path.get('*') == 'false':
         for path in user_pythonpath:
           TRACER.log('Scrubbing user PYTHONPATH element: %s' % path)
-      elif inherit_path == 'prefer':
+      elif inherit_path.get('*') == 'prefer':
         TRACER.log('Prepending user PYTHONPATH: %s' % os.pathsep.join(user_pythonpath))
         scrubbed_sys_path = user_pythonpath + scrubbed_sys_path
       elif inherit_path == 'fallback':
@@ -387,8 +389,8 @@ class PEX(object):  # noqa: T000
     """
     teardown_verbosity = self._vars.PEX_TEARDOWN_VERBOSE
     try:
-      pex_inherit_path = self._vars.PEX_INHERIT_PATH
-      if pex_inherit_path == "false":
+      pex_inherit_path = get_inherit_path_from_env(self._vars.PEX_INHERIT_PATH)
+      if pex_inherit_path.get('*') == 'false':
         pex_inherit_path = self._pex_info.inherit_path
       self.patch_sys(pex_inherit_path)
       working_set = self._activate()

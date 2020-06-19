@@ -28,6 +28,7 @@ from pex.pex_builder import PEXBuilder
 from pex.platforms import Platform
 from pex.resolver import Unsatisfiable, parsed_platform, resolve_multi
 from pex.tracer import TRACER
+from pex.util import process_inherit_path_value
 from pex.variables import ENV, Variables
 from pex.version import __version__
 
@@ -118,6 +119,11 @@ def process_platform(option, option_str, option_value, parser):
   except Platform.InvalidPlatformError as e:
     raise OptionValueError("The {} option is invalid:\n{}"
                            .format(option_str, e))
+
+
+def process_inherit_path(option, option_str, option_value, parser):
+  inherit_path = getattr(parser.values, option.dest, {})
+  process_inherit_path_value(option_value, inherit_path, option_str)
 
 
 def configure_clp_pex_resolution(parser):
@@ -334,14 +340,16 @@ def configure_clp_pex_options(parser):
   group.add_option(
       '--inherit-path',
       dest='inherit_path',
-      default='false',
-      action='store',
-      choices=['false', 'fallback', 'prefer'],
-      help='Inherit the contents of sys.path (including site-packages, user site-packages and '
-           'PYTHONPATH) running the pex. Possible values: false (does not inherit sys.path), '
-           'fallback (inherits sys.path after packaged dependencies), prefer (inherits sys.path '
-           'before packaged dependencies), No value (alias for prefer, for backwards '
-           'compatibility). [Default: %default]')
+      default={},
+      type=str,
+      action='callback',
+      callback=process_inherit_path,
+      help='Whether to inherit the contents of sys.path when running the pex. Possible values: '
+           'false (does not inherit sys.path), fallback (inherits sys.path after packaged '
+           'dependencies), prefer (inherits sys.path before packaged dependencies), '
+           '{fallback|prefer}:<distname> (apply {fallback|prefer} logic to just the named dist), '
+           '{fallback|prefer}:PYTHONPATH (apply {fallback|prefer} logic to PYTHONPATH), '
+           'no value (alias for prefer, for backwards compatibility). [Default: %default]')
 
   group.add_option(
       '--compile', '--no-compile',
