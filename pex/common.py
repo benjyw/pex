@@ -6,7 +6,6 @@ from __future__ import absolute_import, print_function
 import atexit
 import contextlib
 import errno
-import fcntl
 import itertools
 import os
 import re
@@ -22,8 +21,8 @@ from contextlib import contextmanager
 from datetime import datetime
 from uuid import uuid4
 
-from pex.enum import Enum
-from pex.typing import TYPE_CHECKING, cast
+from pex.lock import FileLockStyle, FileLocker
+from pex.typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import (
@@ -394,14 +393,6 @@ class AtomicDirectory(object):
         safe_rmtree(self._work_dir)
 
 
-class FileLockStyle(Enum["FileLockStyle.Value"]):
-    class Value(Enum.Value):
-        pass
-
-    BSD = Value("bsd")
-    POSIX = Value("posix")
-
-
 @contextmanager
 def atomic_directory(
     target_dir,  # type: str
@@ -437,18 +428,15 @@ def atomic_directory(
         yield atomic_dir
         return
 
+    locker = FileLocker(exclusive if exclusive is FileLockStyle.BSD else FileLockStyle.POSIX)
     lock_fd = None  # type: Optional[int]
-    lock_api = cast(
-        "Callable[[int, int], None]",
-        fcntl.flock if exclusive is FileLockStyle.BSD else fcntl.lockf,
-    )
 
     def unlock():
         # type: () -> None
         if lock_fd is None:
             return
         try:
-            lock_api(lock_fd, fcntl.LOCK_UN)
+            locker.unlock(lock_fd)
         finally:
             os.close(lock_fd)
 
@@ -462,10 +450,10 @@ def atomic_directory(
             os.path.join(head, ".{}.atomic_directory.lck".format(tail or "here")),
             os.O_CREAT | os.O_WRONLY,
         )
-        # N.B.: Since lockf and flock operate on an open file descriptor and these are
+        # N.B.: Since all the locking APIs we use operate on an open file descriptor and these are
         # guaranteed to be closed by the operating system when the owning process exits,
         # this lock is immune to staleness.
-        lock_api(lock_fd, fcntl.LOCK_EX)  # A blocking write lock.
+        locker.lock_exclusive(lock_fd)
         if atomic_dir.is_finalized():
             # We lost the double-checked locking race and our work was done for us by the race
             # winner so exit early.

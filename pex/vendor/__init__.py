@@ -216,6 +216,7 @@ def iter_vendor_specs():
     )
 
     # We use this in the implementation of atomic_directory, for cross-platform locking.
+    # Note that 1.7.1 is the last version to support Python 2.7.
     # TODO: Fork portalocker and add support for lockf. It currently always uses flock on posix systems.
     yield VendorSpec.pinned("portalocker", "1.7.1")
 
