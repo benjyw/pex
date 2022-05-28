@@ -215,6 +215,10 @@ def iter_vendor_specs():
         ],
     )
 
+    # We use this in the implementation of atomic_directory, for cross-platform locking.
+    # TODO: Fork portalocker and add support for lockf. It currently always uses flock on posix systems.
+    yield VendorSpec.pinned("portalocker", "1.7.1")
+
     # We expose this to pip at buildtime for legacy builds.
     yield VendorSpec.pinned("wheel", "0.37.1", rewrite=False)
 
