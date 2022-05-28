@@ -29,7 +29,7 @@ class FileLocker:
     ):
         # type: (...) -> None
         if os.name == 'nt' or style == FileLockStyle.BSD:
-            import portalocker
+            from pex.third_party import portalocker
 
             def lock_exclusive(lock_fd):
                 # type: (IO) -> None
