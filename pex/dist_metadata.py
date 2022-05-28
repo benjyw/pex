@@ -151,8 +151,8 @@ def find_dist_info_files(
     # circumstances. This is since we're limiting ourselves to the products of installs by our
     # vendored versions of wheel and pip which turn `-` into `_` as explained in `ProjectName` and
     # `Version` docs.
-    dist_info_metadata_pattern = "^{}$".format(
-        os.path.join(r"(?P<project_name>.+)-(?P<version>.+)\.dist-info", re.escape(filename))
+    dist_info_metadata_pattern = "^(?P<project_name>.+)-(?P<version>.+)\.dist-info{}{}$".format(
+        re.escape(os.path.sep), re.escape(filename)
     )
     wheel_metadata_re = re.compile(dist_info_metadata_pattern)
     for item in listing:
