@@ -33,7 +33,7 @@ class FileLocker:
 
             def lock_exclusive(lock_fd):
                 # type: (IO) -> None
-                portalocker.lock(lock_fd, portalocker.LockFlags.EXCLUSIVE)
+                portalocker.lock(lock_fd, portalocker.LOCK_EX)
 
             def unlock(lock_fd):
                 # type: (IO) -> None
