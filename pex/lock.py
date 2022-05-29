@@ -31,13 +31,13 @@ class FileLocker:
         if os.name == 'nt' or style == FileLockStyle.BSD:
             from pex.third_party import portalocker
 
-            def lock_exclusive(lock_fd):
+            def lock_exclusive(fileobj):
                 # type: (IO) -> None
-                portalocker.lock(lock_fd, portalocker.LOCK_EX)
+                portalocker.lock(fileobj, portalocker.LOCK_EX)
 
-            def unlock(lock_fd):
+            def unlock(fileobj):
                 # type: (IO) -> None
-                portalocker.unlock(lock_fd)
+                portalocker.unlock(fileobj)
 
         else:
             # TODO: Switch this to portalocker as well. Will require adding support to portalocker
@@ -45,13 +45,13 @@ class FileLocker:
             #  We could then get rid of this class entirely and use the portalocker API directly.
             import fcntl
 
-            def lock_exclusive(lock_fd):
+            def lock_exclusive(fileobj):
                 # type: (IO) -> None
-                fcntl.lockf(lock_fd, fcntl.LOCK_EX)  # A blocking write lock.
+                fcntl.lockf(fileobj, fcntl.LOCK_EX)  # A blocking write lock.
 
-            def unlock(lock_fd):
+            def unlock(fileobj):
                 # type: (IO) -> None
-                fcntl.lockf(lock_fd, fcntl.LOCK_UN)
+                fcntl.lockf(fileobj, fcntl.LOCK_UN)
 
         self.lock_exclusive = lock_exclusive
         self.unlock = unlock

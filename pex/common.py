@@ -429,16 +429,16 @@ def atomic_directory(
         return
 
     locker = FileLocker(exclusive if exclusive is FileLockStyle.BSD else FileLockStyle.POSIX)
-    lock_fd = None  # type: Optional[int]
+    lock_fileobj = None  # type: Optional[IO]
 
     def unlock():
         # type: () -> None
-        if lock_fd is None:
+        if lock_fileobj is None:
             return
         try:
-            locker.unlock(lock_fd)
+            locker.unlock(lock_fileobj)
         finally:
-            os.close(lock_fd)
+            os.close(lock_fileobj.fileno())
 
     if exclusive:
         head, tail = os.path.split(atomic_dir.target_dir)
@@ -446,14 +446,14 @@ def atomic_directory(
             safe_mkdir(head)
         # N.B.: We don't actually write anything to the lock file but the fcntl file locking
         # operations only work on files opened for at least write.
-        lock_fd = os.open(
+        lock_fileobj = os.fdopen(os.open(
             os.path.join(head, ".{}.atomic_directory.lck".format(tail or "here")),
             os.O_CREAT | os.O_WRONLY,
-        )
+        ))
         # N.B.: Since all the locking APIs we use operate on an open file descriptor and these are
         # guaranteed to be closed by the operating system when the owning process exits,
         # this lock is immune to staleness.
-        locker.lock_exclusive(lock_fd)
+        locker.lock_exclusive(lock_fileobj)
         if atomic_dir.is_finalized():
             # We lost the double-checked locking race and our work was done for us by the race
             # winner so exit early.
